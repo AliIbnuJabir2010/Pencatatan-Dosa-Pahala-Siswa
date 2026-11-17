@@ -1,0 +1,134 @@
+:root{--ink:#0b1220;--blue:#2563eb;--line:#e5e8ee;--mut:#6b7488;--bg:#f6f7f9;--ok:#15803d;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* header gelap */
+.top{background:var(--ink);color:#fff;padding:24px 16px 30px}
+.top.kecil{padding:18px 16px}
+.top-in{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top h1{margin:0;font-size:1.1rem;font-weight:600;letter-spacing:.2px;display:flex;justify-content:space-between;align-items:center}
+.top a{color:#8fa3c7;font-size:.85rem;font-weight:400;text-decoration:none}
+.top a:hover{color:#fff}
+.top h1 span a{margin-left:16px}
+
+main{max-width:720px;margin:24px auto 48px;padding:0 16px}
+main.naik{margin-top:-14px}
+
+/* form */
+input,textarea,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;color:var(--ink);background:#fff;outline:none;margin-bottom:10px}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #2563eb26}
+.top input{border:0;margin:0}
+label{color:var(--mut);font-size:.9rem}
+button{padding:11px 20px;border:0;border-radius:10px;background:var(--blue);color:#fff;font:inherit;font-weight:500;cursor:pointer;margin:0 8px 8px 0}
+button:hover{filter:brightness(1.08)}
+button.pahala{background:var(--ok)}button.dosa{background:var(--bad)}
+button.ghost{background:#eceff5;color:var(--ink)}
+
+section,.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+.card{background:var(--ink);color:#fff;border:0;font-weight:600}
+h2{margin:0 0 14px;font-size:.8rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.err{color:var(--bad);margin:6px 0 0;min-height:1.2em}.ok{color:var(--ok);font-weight:600}
+.ring{white-space:pre-line;background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px}
+.login-box{max-width:340px;margin:8vh auto}
+
+/* label dosa / pahala */
+.b{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600}
+.b.pahala{background:#e6f6ec;color:var(--ok)}.b.dosa{background:#fdeaea;color:var(--bad)}
+
+/* daftar siswa */
+.daftar{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.item{border-bottom:1px solid var(--line)}.item:last-child{border:0}
+.baris{padding:16px 18px;cursor:pointer}
+.baris:hover{background:#f8fafc}
+.atas,.bawah{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nama{font-weight:600}.kelas{color:var(--mut);font-weight:400;font-size:.85rem;margin-left:8px}
+.waktu{font-size:.78rem;color:var(--mut);flex:none}
+.bawah{margin-top:4px;color:var(--mut);font-size:.88rem}
+.prev{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hitung{display:flex;gap:4px;flex:none}
+.detail{padding:2px 18px 18px;background:#f8fafc}
+.kosong{padding:28px;text-align:center;color:var(--mut)}
+@keyframes sorot{from{background:#dbe7ff}to{background:transparent}}
+.baru .baris{animation:sorot 2.5s ease-out}
+
+/* tabel riwayat */
+.tabel{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px;font-size:.72rem;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}
+td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border:0}
+
+/* scan & kartu QR */
+.kamera{width:100%;max-height:300px;object-fit:cover;border-radius:12px;background:#000;margin-bottom:10px}
+.kartu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.kartu{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;break-inside:avoid}
+.kartu img{width:100%;max-width:140px;height:auto}
+.kartu b{display:block;margin-top:6px}.kartu small{color:var(--mut)}
+@media print{.top{display:none}body{background:#fff}main{margin:0;max-width:none;padding:0}
+.kartu-grid{grid-template-columns:repeat(3,1fr)}.kartu{border:1px solid #000}}
+
+/* biodata hasil scan (halaman siswa, guru) */
+.bio{margin-top:6px}
+.bio-nama{font-size:1.25rem;font-weight:700;margin-bottom:12px}
+.bio-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.bio-grid div{background:var(--bg);border-radius:12px;padding:10px 12px}
+.bio-grid small{display:block;color:var(--mut);font-size:.72rem;text-transform:uppercase;letter-spacing:.6px}
+.bio-grid b{font-size:1.05rem}
+
+/* kotak pilih / tarik gambar QR */
+.drop{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:26px 16px;margin:4px 0 10px;border:2px dashed var(--line);border-radius:14px;background:var(--bg);color:var(--mut);cursor:pointer}
+.drop b{color:var(--ink)}.drop span{font-size:.85rem}
+.drop:hover,.drop.tarik{border-color:var(--blue);background:#eef3ff}
+.drop.sibuk{opacity:.6;pointer-events:none}
+
+/* kamera dengan kotak patokan */
+.finder{position:relative;aspect-ratio:1/1;max-width:420px;margin:0 auto 10px;border-radius:16px;overflow:hidden;background:#000}
+.finder video{width:100%;height:100%;object-fit:cover;display:block}
+.bingkai{position:absolute;inset:17.5%;box-shadow:0 0 0 999px rgba(0,0,0,.5);border-radius:6px}
+.bingkai i{position:absolute;width:26px;height:26px;border:4px solid #fff}
+.bingkai i:nth-child(1){top:-2px;left:-2px;border-right:0;border-bottom:0;border-top-left-radius:6px}
+.bingkai i:nth-child(2){top:-2px;right:-2px;border-left:0;border-bottom:0;border-top-right-radius:6px}
+.bingkai i:nth-child(3){bottom:-2px;left:-2px;border-right:0;border-top:0;border-bottom-left-radius:6px}
+.bingkai i:nth-child(4){bottom:-2px;right:-2px;border-left:0;border-top:0;border-bottom-right-radius:6px}
+.garis{position:absolute;left:6%;right:6%;height:2px;background:#4ade80;box-shadow:0 0 8px #4ade80;animation:pindai 1.8s ease-in-out infinite alternate}
+@keyframes pindai{from{top:8%}to{top:92%}}
+.petunjuk{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff;font-size:.85rem;text-shadow:0 1px 3px #000;padding:0 12px}
+.petunjuk.salah{color:#fca5a5}
+
+/* menu atas: boleh turun baris di layar kecil */
+.top h1{flex-wrap:wrap;gap:6px 12px}
+.top h1 span a{margin-left:0;margin-right:14px}.top h1 span a:last-child{margin-right:0}
+.sub{color:var(--mut);font-size:.82rem;margin:4px 0 0}
+.tombol{display:inline-block;padding:11px 20px;border-radius:10px;background:var(--blue);color:#fff;font-weight:500;text-decoration:none;margin:0 8px 8px 0}
+.aksi{margin-top:14px}
+
+/* pilihan kategori + poin */
+.opsi{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;color:var(--ink);font-size:1rem}
+.opsi:has(input:checked){border-color:var(--blue);background:#eef3ff}
+.opsi input{width:auto;margin:0}
+.opsi span{flex:1}
+.poin{font-weight:700}.poin.dosa{color:var(--bad)}.poin.pahala{color:var(--ok)}
+b.dosa{color:var(--bad)}b.pahala{color:var(--ok)}
+.cekrow{display:flex;align-items:center;gap:8px;margin:0 0 10px;color:var(--ink)}
+.cekrow input{width:auto;margin:0}
+
+/* kelola kategori */
+.krow{display:grid;grid-template-columns:1fr 90px auto auto;gap:8px;align-items:center;margin-bottom:10px}
+.krow input{margin:0}.krow button{margin:0}.krow .err{grid-column:1/-1;margin:0;min-height:0}
+.krow.mati input[type=text],.krow.mati>input:first-child{color:var(--mut);text-decoration:line-through}
+@media(max-width:520px){.krow{grid-template-columns:1fr 80px}.krow .cekrow{grid-column:1}}
+
+/* profil murid */
+.kepala-sub{font-weight:400;color:#8fa3c7;font-size:.9rem;margin-top:4px}
+.card{font-size:1.1rem}
+
+/* kotak password baru & cetak */
+.pwbox{background:#fffbea;border:1px solid #f3e1a0;border-radius:12px;padding:14px;margin-top:12px}
+.pw{font:700 1.5rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:2px;margin:6px 0 10px;user-select:all}
+.status{font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:99px;background:#e6f6ec;color:var(--ok)}
+.status.belum{background:#fdeaea;color:var(--bad)}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border:0}.prow .pn{flex:1;min-width:0}.prow button{margin:0;padding:8px 14px}
+@media print{.noprint,.top{display:none!important}body{background:#fff}section,.card{border:0;padding:0}table{font-size:12pt}}
+
+button:disabled{opacity:.45;cursor:default;filter:none}

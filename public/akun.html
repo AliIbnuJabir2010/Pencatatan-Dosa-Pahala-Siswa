@@ -1,0 +1,31 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akun</title><meta name="theme-color" content="#0b1220"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>Akun</span><span id="nav"><a href="#" id="out">Keluar</a></span></h1>
+</div></header>
+<main>
+<section><h2 id="siapa">Ganti password</h2>
+<input id="lama" type="password" placeholder="Password lama" autocomplete="current-password">
+<input id="baru" type="password" placeholder="Password baru (guru/murid min 6, admin min 8)" autocomplete="new-password">
+<input id="ulang" type="password" placeholder="Ulangi password baru" autocomplete="new-password">
+<button id="ganti">Simpan</button><p class="err" id="e"></p><p class="ok" id="s"></p></section>
+</main>
+<script src="/ui.js"></script>
+<script>
+pasangKeluar();
+// menu sesuai peran
+api('/api/saya').then(d=>{
+  $('siapa').textContent='Ganti password — '+d.nama;
+  const beranda=d.peran==='murid'?'/murid':d.peran==='admin'?'/admin':'/guru';
+  $('nav').prepend(Object.assign(el('a',null,d.peran==='murid'?'Profil':d.peran==='admin'?'Dashboard':'Beranda'),{href:beranda}));
+});
+$('ganti').onclick=async()=>{
+  $('e').textContent='';$('s').textContent='';
+  if($('baru').value!==$('ulang').value)return $('e').textContent='Password baru dan ulangannya tidak sama.';
+  try{
+    await kirim('/api/ganti-password',{lama:$('lama').value,baru:$('baru').value});
+    $('lama').value=$('baru').value=$('ulang').value='';
+    $('s').textContent='Password berhasil diganti. Perangkat lain otomatis keluar.';
+  }catch(e){$('e').textContent=e.message}
+};
+</script></body></html>

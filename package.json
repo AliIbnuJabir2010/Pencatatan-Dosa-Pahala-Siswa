@@ -1,0 +1,21 @@
+{
+  "name": "dosa-pahala",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "admin": "node admin.js admin",
+    "guru": "node admin.js guru",
+    "siswa": "node admin.js siswa",
+    "cert": "node cert.js",
+    "tes-qr": "node python.js --tes"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.5.0"
+  },
+  "dependencies": {
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4"
+  }
+}
