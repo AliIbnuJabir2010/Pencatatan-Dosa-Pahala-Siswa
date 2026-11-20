@@ -1,0 +1,141 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard Admin</title><meta name="theme-color" content="#f4f2ec"><meta name="robots" content="noindex"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>Dashboard Admin</span><span id="siapa"></span><span><a href="/akun">Pengaturan</a><a href="#" id="out">Keluar</a></span></h1>
+</div></header>
+<main>
+<div class="tabs" id="tabs"></div>
+
+<section id="t-ringkasan"><h2>Ringkasan</h2><div class="stat" id="stat"></div>
+<h2 style="margin-top:20px">Server</h2><div class="kv" id="srv"></div>
+<h2 style="margin-top:20px">Tindakan</h2>
+<a class="tombol" href="/api/admin/backup">Unduh cadangan database</a>
+<button class="ghost" id="keluarSemua">Keluarkan semua sesi login lain</button>
+<p class="sub">Cadangan berisi seluruh data (termasuk hash password). Simpan di tempat aman.</p>
+<p class="err" id="e-ringkasan"></p><p class="ok" id="s-ringkasan"></p></section>
+
+<section id="t-guru" hidden><h2>Akun guru</h2>
+<div class="form"><input id="gNama" placeholder="Nama lengkap guru"><input id="gUser" placeholder="Username" autocapitalize="none"><button id="gTambah">Tambah guru</button></div>
+<div id="gBox"></div><div id="gHasil"></div><p class="err" id="e-guru"></p></section>
+
+<section id="t-murid" hidden><h2>Akun murid</h2>
+<div class="form"><input id="mNisn" inputmode="numeric" maxlength="10" placeholder="NISN (10 digit)"><input id="mNama" placeholder="Nama lengkap"><input id="mKelas" placeholder="Kelas (mis. XI IPA 2)"><button id="mSimpan">Simpan murid</button></div>
+<p class="sub" style="margin:-4px 0 10px">NISN baru = murid baru (password acak dibuat otomatis). NISN yang sudah ada = ubah nama/kelas.</p>
+<input id="mCari" placeholder="Cari nama, NISN, atau kelas" autocomplete="off">
+<div id="mBox"></div><div id="mHasil"></div><p class="err" id="e-murid"></p></section>
+
+<section id="t-laporan" hidden><h2>Catatan aduan</h2>
+<input id="lCari" placeholder="Cari nama, NISN, atau aduan (200 terbaru)" autocomplete="off">
+<div id="lBox"></div><p class="err" id="e-laporan"></p></section>
+
+<section id="t-kategori" hidden><h2>Kategori &amp; poin</h2>
+<div class="form"><select id="kJenis" style="flex:0 0 120px;margin:0"><option value="dosa">Dosa</option><option value="pahala">Pahala</option></select>
+<input id="kNama" placeholder="Nama kategori"><input id="kPoin" inputmode="numeric" placeholder="Poin" style="max-width:90px"><button id="kTambah">Tambah</button></div>
+<div id="kBox"></div><p class="err" id="e-kategori"></p></section>
+</main>
+<script src="/ui.js"></script>
+<script>
+const TAB=[['ringkasan','Ringkasan'],['guru','Guru'],['murid','Murid'],['laporan','Laporan'],['kategori','Kategori']];
+const muatTab={}, galat=(t,e)=>$('e-'+t).textContent=e.message||e;
+let tabAktif='';
+function buka(t){
+  tabAktif=t;
+  TAB.forEach(([k])=>{$('t-'+k).hidden=k!==t});
+  [...$('tabs').children].forEach((b,i)=>b.classList.toggle('on',TAB[i][0]===t));
+  $('e-'+t).textContent='';
+  muatTab[t]().catch(e=>galat(t,e));
+}
+TAB.forEach(([k,n])=>$('tabs').append(Object.assign(el('button',null,n),{onclick:()=>buka(k)})));
+const baris=(...isi)=>{const r=el('div','row');r.append(...isi);return r};
+const info=(judul,sub)=>{const d=el('div','pn'),n=el('div','nama',judul);if(judul)n.dataset.inisial=inisial(judul);if(sub)n.append(el('span','kelas',sub));d.append(n);return d};
+const tombol=(teks,fn,kls)=>Object.assign(el('button',kls||'ghost',teks),{onclick:fn});
+const durasi=d=>d>=3600?Math.floor(d/3600)+' jam '+Math.floor(d%3600/60)+' menit':Math.floor(d/60)+' menit';
+const aman=fn=>async(...a)=>{try{await fn(...a)}catch(e){galat(tabAktif,e)}};
+
+// ----- Ringkasan -----
+muatTab.ringkasan=async()=>{
+  const d=await api('/api/admin/statistik');
+  $('stat').replaceChildren(...[['Guru',d.guru],['Murid',d.siswa],['Murid tanpa password',d.siswa_tanpa_password],['Murid pernah login',d.siswa_pernah_login],
+    ['Catatan aduan',d.laporan],['Catatan hari ini',d.laporan_hari_ini],['Total poin dosa',d.poin_dosa],['Total poin pahala',d.poin_pahala],
+    ['Kategori aktif',d.kategori_aktif],['Sesi login aktif',d.sesi_aktif]].map(([k,v])=>{const x=el('div');x.append(el('small',null,k),el('b',null,String(v)));return x}));
+  const s=d.server;
+  $('srv').replaceChildren(...[['Waktu server',s.waktu],['Berjalan selama',durasi(s.uptime)],['Node.js',s.node],['Memori',s.memori_mb+' MB'],
+    ['Ukuran database',s.db_kb+' KB'],['HTTPS (kamera HP)',s.https?'Aktif':'Belum (npm run cert)']].flatMap(([k,v])=>[el('span',null,k),el('span',null,v)]));
+};
+$('keluarSemua').onclick=aman(async()=>{
+  if(!confirm('Keluarkan semua guru dan murid yang sedang login? (Sesi kamu tetap aktif)'))return;
+  const d=await kirim('/api/admin/keluarkan-semua');
+  $('s-ringkasan').textContent=d.dikeluarkan+' sesi dikeluarkan.';await muatTab.ringkasan();
+});
+
+// ----- Guru -----
+muatTab.guru=async()=>{
+  const g=await api('/api/admin/guru'), box=$('gBox');box.replaceChildren();
+  if(!g.length)return box.append(el('div','kosong','Belum ada guru'));
+  g.forEach(x=>box.append(baris(info(x.nama,x.username+' · '+x.laporan+' catatan'),
+    tombol('Ubah nama',aman(async()=>{const n=prompt('Nama baru:',x.nama);if(!n)return;await kirim('/api/admin/guru/nama',{id:x.id,nama:n});await muatTab.guru()})),
+    tombol('Reset password',aman(async()=>{
+      if(!confirm('Reset password '+x.nama+'? Guru ini keluar dari semua perangkat.'))return;
+      $('gHasil').replaceChildren(kotakPassword({nisn:x.username,nama:x.nama,password:(await kirim('/api/admin/guru/reset',{id:x.id})).password}))})),
+    tombol('Hapus',aman(async()=>{if(!confirm('Hapus akun guru '+x.nama+'?'))return;await kirim('/api/admin/guru/hapus',{id:x.id});await muatTab.guru()}),'bahaya'))));
+};
+$('gTambah').onclick=aman(async()=>{
+  const d=await kirim('/api/admin/guru',{nama:$('gNama').value,username:$('gUser').value});
+  $('gNama').value=$('gUser').value='';$('gHasil').replaceChildren(kotakPassword({nisn:d.username,nama:d.nama,password:d.password}));await muatTab.guru();
+});
+
+// ----- Murid -----
+let murid=[];
+function gambarMurid(){
+  const k=$('mCari').value.trim().toLowerCase(), box=$('mBox');box.replaceChildren();
+  const tampil=murid.filter(s=>!k||(s.nama+' '+s.nisn+' '+s.kelas).toLowerCase().includes(k)).slice(0,200);
+  if(!tampil.length)return box.append(el('div','kosong','Tidak ditemukan'));
+  tampil.forEach(s=>box.append(baris(info(s.nama,s.kelas+' · '+s.nisn),
+    el('span','status'+(s.punya_password?'':' belum'),s.pw_diganti?'Diganti murid':s.punya_password?'Dari admin/guru':'Belum punya'),
+    tombol('Ubah',()=>{$('mNisn').value=s.nisn;$('mNama').value=s.nama;$('mKelas').value=s.kelas;window.scrollTo({top:0,behavior:'smooth'})}),
+    tombol('Reset',aman(async()=>{
+      if(!confirm('Reset password '+s.nama+'? Murid keluar dari semua perangkat.'))return;
+      $('mHasil').replaceChildren(kotakPassword((await kirim('/api/admin/siswa/reset',{nisn:s.nisn})).hasil[0]));await muatTab.murid()})),
+    tombol('Hapus',aman(async()=>{
+      if(!confirm('Hapus '+s.nama+' beserta SEMUA catatan aduannya? Tidak bisa dibatalkan.'))return;
+      await kirim('/api/admin/siswa/hapus',{nisn:s.nisn});await muatTab.murid()}),'bahaya'))));
+}
+muatTab.murid=async()=>{murid=(await api('/api/admin/siswa')).sort((a,b)=>a.kelas.localeCompare(b.kelas,'id',{numeric:true})||a.nama.localeCompare(b.nama));gambarMurid()};
+$('mCari').addEventListener('input',gambarMurid);
+$('mSimpan').onclick=aman(async()=>{
+  const d=await kirim('/api/admin/siswa',{nisn:$('mNisn').value,nama:$('mNama').value,kelas:$('mKelas').value});
+  $('mNisn').value=$('mNama').value=$('mKelas').value='';
+  $('mHasil').replaceChildren(d.password?kotakPassword(d):el('p','ok','Data murid diperbarui.'));await muatTab.murid();
+});
+
+// ----- Laporan -----
+muatTab.laporan=async()=>{
+  const l=await api('/api/admin/laporan?q='+encodeURIComponent($('lCari').value.trim())), box=$('lBox');box.replaceChildren();
+  if(!l.length)return box.append(el('div','kosong','Tidak ada catatan'));
+  l.forEach(x=>{
+    const i=info('',null);i.firstChild.append(el('span','b '+x.jenis,x.jenis),' '+x.masalah+' ',el('span','poin '+x.jenis,(x.jenis==='dosa'?'−':'+')+x.poin));
+    i.append(el('div','sub',x.nama+' ('+x.kelas+') · '+fmtTgl(x.tanggal)+' · oleh '+x.guru+(x.catatan?' · '+x.catatan:'')));
+    box.append(baris(i,tombol('Hapus',aman(async()=>{if(!confirm('Hapus catatan ini?'))return;await kirim('/api/admin/laporan/hapus',{id:x.id});await muatTab.laporan()}),'bahaya')));
+  });
+};
+let tunda;$('lCari').addEventListener('input',()=>{clearTimeout(tunda);tunda=setTimeout(()=>muatTab.laporan().catch(e=>galat('laporan',e)),300)});
+
+// ----- Kategori -----
+muatTab.kategori=async()=>{
+  const k=await api('/api/admin/kategori'), box=$('kBox');box.replaceChildren();
+  k.forEach(x=>{
+    const n=Object.assign(el('input'),{value:x.nama}), p=Object.assign(el('input'),{value:x.poin,inputMode:'numeric'});p.style.maxWidth='80px';
+    const j=el('span','b '+x.jenis,x.jenis);
+    box.append(baris(j,n,p,
+      tombol('Simpan',aman(async()=>{await kirim('/api/admin/kategori/ubah',{id:x.id,nama:n.value,poin:p.value});await muatTab.kategori()})),
+      tombol(x.aktif?'Nonaktifkan':'Aktifkan',aman(async()=>{await kirim('/api/admin/kategori/ubah',{id:x.id,aktif:!x.aktif});await muatTab.kategori()}))));
+  });
+};
+$('kTambah').onclick=aman(async()=>{
+  await kirim('/api/admin/kategori',{jenis:$('kJenis').value,nama:$('kNama').value,poin:$('kPoin').value});
+  $('kNama').value=$('kPoin').value='';await muatTab.kategori();
+});
+
+pasangKeluar();
+api('/api/saya').then(d=>{if(d.peran!=='admin'){location='/';return}$('siapa').textContent=d.nama;buka('ringkasan')}).catch(()=>{});
+</script></body></html>

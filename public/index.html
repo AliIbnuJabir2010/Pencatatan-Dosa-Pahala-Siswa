@@ -1,0 +1,229 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Siswa</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top"><div class="top-in">
+<h1><span>Siswa</span><span><a href="/guru">Siswa</a><a href="/guru/aduan">Aduan</a><a href="/guru/qr">QR</a><a href="/guru/kategori">Kategori</a><a href="/guru/password">Password</a><a href="/akun">Pengaturan</a><a href="#" id="out">Keluar</a></span></h1>
+<input id="q" placeholder="Cari nama atau NISN" autocomplete="off">
+</div></header>
+<main class="naik">
+<section id="scan"><h2>Cek Siswa</h2>
+<input id="nisn" inputmode="numeric" maxlength="10" placeholder="NISN (10 digit)">
+<button id="bcari">Cari</button><button class="ghost" id="bq">Buka Kamera</button>
+<div id="finder" class="finder" hidden>
+<video id="vid" playsinline muted></video>
+<div class="bingkai"><i></i><i></i><i></i><i></i><span class="garis"></span></div>
+<div class="petunjuk" id="petunjuk">Arahkan QR ke tengah kotak</div>
+</div>
+<button class="ghost" id="tutup" hidden>Tutup kamera</button>
+<label id="drop" class="drop" for="foto"><b>Scan QR dari gambar</b>
+<span>Klik untuk pilih gambar, tarik ke sini, atau tempel (Ctrl+V)</span></label>
+<input type="file" id="foto" accept="image/*" hidden>
+<p class="err" id="es"></p>
+<div id="bio" class="bio" hidden></div></section>
+<section id="stat"><h2 id="judulStat">Aktivitas &amp; statistik</h2>
+<p class="sub" id="subStat">Seluruh siswa · termasuk catatan dari semua guru.</p>
+<div id="grafik" class="grafik"></div></section>
+<div class="daftar" id="daftar"></div><p class="err" id="e"></p></main>
+<script src="/jsqr.js"></script>
+<script src="/ui.js"></script>
+<script src="/scan.js"></script>
+<script>
+let semua=[], terbuka=null, teksTerakhir='', statNisn=null;
+const detail={}, sedangMuat=new Set(), idTerakhir=new Map();
+
+// Jam kalau hari ini, "Kemarin", atau tanggal (seperti WhatsApp)
+function waktu(s){
+  if(!s)return '';
+  const d=new Date(s.replace(' ','T')), n=new Date(), k=new Date(n);
+  k.setDate(n.getDate()-1);
+  if(d.toDateString()===n.toDateString())return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  if(d.toDateString()===k.toDateString())return 'Kemarin';
+  return d.toLocaleDateString('id-ID');
+}
+
+async function muatDetail(nisn){
+  if(sedangMuat.has(nisn))return;
+  sedangMuat.add(nisn);
+  try{detail[nisn]=await api('/api/cari?q='+encodeURIComponent(nisn))}catch{detail[nisn]=[]}
+  sedangMuat.delete(nisn);
+  gambar();
+}
+
+const labelBulan = b => {
+  const [tahun, bulan] = b.split('-');
+  return new Date(Number(tahun), Number(bulan) - 1, 1).toLocaleDateString('id-ID',{month:'short',year:'2-digit'});
+};
+
+function enamBulan(baris){
+  const peta=new Map(baris.map(x=>[x.bulan,x])), sekarang=new Date(), hasil=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(sekarang.getFullYear(),sekarang.getMonth()-i,1);
+    const kunci=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    hasil.push(peta.get(kunci)||{bulan:kunci,dosa:0,pahala:0});
+  }
+  return hasil;
+}
+
+function gambarStatistik(d){
+  const box=$('grafik'); box.replaceChildren();
+  const legend=el('div','grafik-legend');
+  legend.append(el('span','b dosa','Dosa'),el('span','b pahala','Pahala'),
+    el('span','grafik-total',d.total.dosa+' dosa · '+d.total.pahala+' pahala'));
+  box.append(legend);
+  if(!d.total.dosa&&!d.total.pahala){box.append(el('div','kosong','Belum ada catatan.'));return}
+  const bulan=enamBulan(d.bulan), maks=Math.max(1,...bulan.map(b=>Math.max(Number(b.dosa),Number(b.pahala))));
+  const plot=el('div','grafik-plot'), label=el('div','grafik-label');
+  bulan.forEach(b=>{
+    const kolom=el('div','grafik-kolom');
+    [['dosa',b.dosa],['pahala',b.pahala]].forEach(([jenis,nilai])=>{
+      const batang=el('div','grafik-batang '+jenis);
+      batang.style.height=Math.round(Number(nilai)/maks*100)+'%';
+      batang.title=labelBulan(b.bulan)+': '+nilai+' '+jenis;
+      kolom.append(batang);
+    });
+    plot.append(kolom); label.append(el('div',null,labelBulan(b.bulan)));
+  });
+  box.append(plot,label);
+  if(d.kategori.length){
+    const kat=el('div','grafik-sub'); kat.append(el('h3',null,'Kategori terbanyak'));
+    const maksKat=Math.max(1,...d.kategori.map(k=>Number(k.jumlah)));
+    d.kategori.forEach(k=>{
+      const baris=el('div','kat-baris'), rel=el('div','kat-rel'), isi=el('i',k.jenis);
+      isi.style.width=Math.round(Number(k.jumlah)/maksKat*100)+'%';
+      rel.append(isi);
+      baris.append(el('span','kat-nama',k.nama),rel,el('span','kat-jumlah',String(k.jumlah)));
+      kat.append(baris);
+    });
+    box.append(kat);
+  }
+  if(d.terbaru.length){
+    const akt=el('div','grafik-sub'); akt.append(el('h3',null,'Catatan terbaru'));
+    const tb=document.createElement('table'), hd=tb.createTHead().insertRow();
+    const kolom=d.nisn?['Tanggal','Kegiatan','Poin','Guru']:['Tanggal','Siswa','Kegiatan','Poin','Guru'];
+    kolom.forEach(j=>hd.appendChild(el('th',null,j)));
+    const body=tb.createTBody();
+    d.terbaru.forEach(x=>{
+      const tr=body.insertRow();
+      tr.insertCell().textContent=fmtTgl(x.tanggal);
+      if(!d.nisn){
+        const s=tr.insertCell(); s.append(document.createTextNode(x.nama),el('div','sub',x.kelas+' · '+x.nisn));
+      }
+      const m=tr.insertCell(); m.append(el('span','b '+x.jenis,x.jenis),' '+x.masalah);
+      const p=tr.insertCell(); p.textContent=(x.jenis==='dosa'?'−':'+')+x.poin; p.className='poin '+x.jenis;
+      tr.insertCell().textContent=x.guru;
+    });
+    const w=el('div','tabel'); w.append(tb); akt.append(w); box.append(akt);
+  }
+}
+
+async function muatStatistik(nisn=statNisn){
+  statNisn=nisn||null;
+  const s=semua.find(x=>x.nisn===statNisn);
+  $('judulStat').textContent=statNisn?'Statistik '+(s?s.nama:statNisn):'Aktivitas & statistik';
+  $('subStat').textContent=statNisn
+    ? 'Catatan '+(s?s.nama:statNisn)+' dari semua guru.'
+    : 'Seluruh siswa · termasuk catatan dari semua guru.';
+  try{
+    const d=await api('/api/statistik'+(statNisn?'?nisn='+encodeURIComponent(statNisn):''));
+    if(d.nisn===(statNisn||null))gambarStatistik(d);
+  }catch(e){$('grafik').replaceChildren(el('div','sub',e.message))}
+}
+
+function pilihStat(nisn){if(nisn!==statNisn)muatStatistik(nisn)}
+
+function gambar(){
+  const kata=$('q').value.trim().toLowerCase();
+  const tampil=semua.filter(s=>!kata||s.nama.toLowerCase().includes(kata)||s.nisn.includes(kata));
+  const box=$('daftar'); box.replaceChildren();
+  if(!tampil.length){box.appendChild(el('div','kosong',semua.length?'Tidak ditemukan':'Belum ada siswa'));return}
+
+  tampil.forEach(s=>{
+    const item=el('div','item'+(s.baru?' baru':'')+(terbuka===s.nisn?' buka':'')), baris=el('div','baris');
+    const isi=el('div','isi'), atas=el('div','atas'), bawah=el('div','bawah');
+    const nama=el('div','nama',s.nama); nama.dataset.inisial=inisial(s.nama); nama.append(el('span','kelas',s.kelas));
+    atas.append(nama,el('div','waktu',waktu(s.waktu_terakhir)));
+
+    const prev=el('div','prev');
+    if(s.total){prev.append(el('span','b '+s.jenis_terakhir,s.jenis_terakhir),' '+s.masalah_terakhir+' · '+s.guru_terakhir)}
+    else prev.textContent='Belum ada catatan';
+    const hitung=el('div','hitung');
+    if(s.dosa){const b=el('span','b dosa',s.poin_dosa+' poin');b.title=s.dosa+' catatan dosa';hitung.append(b)}
+    if(s.pahala){const b=el('span','b pahala',s.poin_pahala+' poin');b.title=s.pahala+' catatan pahala';hitung.append(b)}
+    bawah.append(prev,hitung);
+
+    isi.append(atas,bawah); baris.append(isi); item.append(baris);
+    baris.onclick=()=>{terbuka=terbuka===s.nisn?null:s.nisn;pilihStat(terbuka);gambar()};
+
+    if(terbuka===s.nisn){
+      const d=el('div','detail');
+      if(detail[s.nisn])d.append(el('div','sub','Termasuk catatan dari semua guru.'),tabelRiwayat(detail[s.nisn]));
+      else{d.textContent='Memuat...';muatDetail(s.nisn)}
+      item.append(d);
+    }
+    box.append(item);
+  });
+}
+
+// Ambil daftar terbaru. Siswa yang catatan terakhirnya berubah naik ke atas dan disorot.
+async function muat(pertama){
+  try{
+    const r=await fetch('/api/daftar');
+    if(r.status===401)return location='/';
+    const teks=await r.text();
+    if(!r.ok)throw 0;
+    if(teks===teksTerakhir)return;
+    teksTerakhir=teks;
+    semua=JSON.parse(teks);
+    semua.forEach(s=>{
+      const lama=idTerakhir.get(s.nisn);
+      if(!pertama&&lama!==s.terakhir_id){s.baru=true;delete detail[s.nisn]}
+      idTerakhir.set(s.nisn,s.terakhir_id);
+    });
+    $('e').textContent='';
+    gambar();
+    if(!pertama)muatStatistik();
+    semua.forEach(s=>s.baru=false);
+  }catch{ if(pertama)$('e').textContent='Gagal memuat' }
+}
+
+// ---- cek siswa lewat NISN / scan QR: tampilkan biodata + poin ----
+function tampilBio(s,rows){
+  const box=$('bio'); box.replaceChildren();
+  const tutup=el('button','ghost','Tutup'); tutup.onclick=()=>{box.hidden=true;pilihStat(null)};
+  const aduan=el('a','tombol','Buat aduan'); aduan.href='/guru/aduan?nisn='+s.nisn;
+  const pw=el('button','ghost',s.punya_password?'Buat password baru':'Buat password');
+  const hasilPw=el('div');
+  pw.onclick=async()=>{
+    if(s.punya_password&&!confirm('Buat password baru untuk '+s.nama+'? Password lama tidak berlaku lagi dan murid keluar dari semua perangkat.'))return;
+    try{
+      const d=await kirim('/api/password-murid',{nisn:s.nisn});
+      s.punya_password=true;pw.textContent='Buat password baru';
+      hasilPw.replaceChildren(kotakPassword(d.hasil[0]));
+    }catch(e){alert(e.message)}
+  };
+  box.append(el('div','bio-nama',s.nama),kartuRingkas(s,[['NISN',s.nisn],['Kelas',s.kelas]]),
+    el('h2',null,'Riwayat'),el('div','sub','Termasuk catatan dari guru lain.'),tabelRiwayat(rows),
+    el('div','sub',s.punya_password?'Murid ini sudah punya password.':'Murid ini belum punya password, belum bisa masuk.'),el('div','aksi'),hasilPw);
+  box.children[box.children.length-2].append(aduan,pw,tutup);
+  box.hidden=false;
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function cekSiswa(nisn){
+  $('es').textContent='';$('bio').hidden=true;
+  try{
+    const s=await api('/api/siswa?nisn='+encodeURIComponent(nisn));
+    const rows=await api('/api/cari?q='+encodeURIComponent(nisn));
+    tampilBio(s,Array.isArray(rows)?rows:[]);
+    pilihStat(nisn);
+  }catch(e){$('es').textContent=e.message}
+}
+
+pasangScan({pesan:'es',mulai:()=>{$('bio').hidden=true},hasil:nisn=>{$('nisn').value=nisn;cekSiswa(nisn)}});
+$('bcari').onclick=()=>cekSiswa($('nisn').value.trim());
+$('nisn').addEventListener('keydown',e=>{if(e.key==='Enter')$('bcari').click()});
+$('q').addEventListener('input',gambar);
+pasangKeluar();
+muat(true);
+muatStatistik();
+setInterval(()=>{if(!document.hidden)muat(false)},8000);   // perbarui otomatis tiap 8 detik
+</script></body></html>

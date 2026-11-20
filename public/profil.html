@@ -1,0 +1,20 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profil</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>Profil Saya</span><span><a href="/akun">Pengaturan</a><a href="#" id="out">Keluar</a></span></h1>
+</div></header>
+<main>
+<div class="card" id="kepala">Memuat...</div>
+<section><h2>Poin</h2><div id="poin"></div></section>
+<section><h2>Riwayat</h2><div id="riwayat"></div></section>
+<p class="err" id="e"></p>
+</main>
+<script src="/ui.js"></script>
+<script>
+pasangKeluar();
+api('/api/profil').then(d=>{
+  $('kepala').replaceChildren(el('div',null,d.nama),el('div','kepala-sub','Kelas '+d.kelas+' · NISN '+d.nisn));
+  $('poin').append(kartuRingkas(d));
+  $('riwayat').append(tabelRiwayat(d.riwayat));
+}).catch(e=>{$('kepala').textContent='';$('e').textContent=e.message});
+</script></body></html>

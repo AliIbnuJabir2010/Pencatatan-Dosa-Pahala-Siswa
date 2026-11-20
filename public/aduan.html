@@ -1,0 +1,139 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aduan</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>Aduan</span><span><a href="/guru">Siswa</a><a href="/guru/aduan">Aduan</a><a href="/guru/qr">QR</a><a href="/guru/kategori">Kategori</a><a href="/guru/password">Password</a><a href="/akun">Pengaturan</a><a href="#" id="out">Keluar</a></span></h1>
+</div></header>
+<main>
+<div class="langkah" id="langkah"><span data-n="1">NISN</span><span data-n="2">Jenis</span><span data-n="3">Yakin</span><span data-n="4">Kategori</span><span data-n="5">Simpan</span></div>
+<div class="card" id="info" hidden></div>
+
+<section id="s1"><h2>NISN</h2>
+<input id="nisn" inputmode="numeric" maxlength="10" placeholder="NISN (10 digit)">
+<button id="b1">Cari</button><button class="ghost" id="bq">Buka Kamera</button>
+<div id="finder" class="finder" hidden>
+<video id="vid" playsinline muted></video>
+<div class="bingkai"><i></i><i></i><i></i><i></i><span class="garis"></span></div>
+<div class="petunjuk" id="petunjuk">Arahkan QR ke tengah kotak</div>
+</div>
+<button class="ghost" id="tutup" hidden>Tutup kamera</button>
+<label id="drop" class="drop" for="foto"><b>Scan QR dari gambar</b>
+<span>Klik untuk pilih gambar, tarik ke sini, atau tempel (Ctrl+V)</span></label>
+<input type="file" id="foto" accept="image/*" hidden>
+<p class="err" id="e1"></p><p class="ok" id="sukses"></p></section>
+
+<section id="s2" hidden><h2>Jenis</h2>
+<button class="pahala" data-j="pahala">Pahala</button><button class="dosa" data-j="dosa">Dosa</button>
+<button class="ghost" id="ganti">Ganti</button></section>
+
+<section id="s3" hidden><h2>Yakin?</h2><p id="q3"></p>
+<button id="y3">Ya</button><button class="ghost" id="n3">Kembali</button></section>
+
+<section id="s4" hidden><h2>Kategori &amp; poin</h2>
+<div id="daftarKat"></div>
+<div id="lain" hidden>
+<input id="lainNama" maxlength="60" placeholder="Nama kategori (mis. Merokok)">
+<input id="lainPoin" type="number" min="1" max="1000" inputmode="numeric" placeholder="Poin (1–1000)">
+<label class="cekrow"><input type="checkbox" id="lainSimpan"> Simpan sebagai kategori tetap (muncul di daftar berikutnya)</label>
+</div>
+<label>Catatan (opsional)</label>
+<textarea id="catatan" rows="2" maxlength="200" placeholder="Contoh: kedapatan di belakang kantin"></textarea>
+<label>Tanggal perbuatan</label><input id="tgl" type="date">
+<button id="b4">Lanjut</button><button class="ghost" id="n4">Kembali</button><p class="err" id="e4"></p></section>
+
+<section id="s5" hidden><h2>Konfirmasi</h2>
+<div class="ring" id="ringkas"></div>
+<label><input type="checkbox" id="cek" style="width:auto;margin-right:8px">Siswa benar-benar melakukan ini.</label><br><br>
+<button id="simpan">Simpan</button><button class="ghost" id="n5">Kembali</button><p class="err" id="e5"></p></section>
+</main>
+<script src="/jsqr.js"></script>
+<script src="/ui.js"></script>
+<script src="/scan.js"></script>
+<script>
+const st={};
+
+const show=n=>{for(let i=1;i<=5;i++)$('s'+i).hidden=i!==n;$('info').hidden=n===1;[...$('langkah').children].forEach((s,i)=>{s.classList.toggle('on',i+1===n);s.classList.toggle('done',i+1<n)})};
+
+// ---- 1. cari siswa (NISN / scan QR) ----
+async function cariSiswa(){
+  $('e1').textContent='';$('sukses').textContent='';
+  try{
+    st.s=await api('/api/siswa?nisn='+encodeURIComponent($('nisn').value.trim()));
+    $('info').replaceChildren(el('div',null,st.s.nama),el('div','kepala-sub','Kelas '+st.s.kelas+' · NISN '+st.s.nisn),
+      el('div','aksi',el('span','b dosa','Dosa '+st.s.poin_dosa),el('span','b pahala','Pahala '+st.s.poin_pahala)));
+    show(2);
+  }catch(e){$('e1').textContent=e.message}
+}
+$('b1').onclick=cariSiswa;
+$('nisn').addEventListener('keydown',e=>{if(e.key==='Enter')$('b1').click()});
+pasangScan({pesan:'e1',hasil:nisn=>{$('nisn').value=nisn;cariSiswa()}});
+
+// ---- 2-3. jenis + konfirmasi ----
+$('ganti').onclick=()=>show(1);
+document.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{
+  st.j=b.dataset.j;
+  $('q3').textContent=`Apakah yang dilakukan ${st.s.nama} benar-benar termasuk ${st.j.toUpperCase()}?`;show(3);
+});
+$('n3').onclick=()=>show(2);
+
+// ---- 4. kategori + poin ----
+async function gambarKategori(){
+  const box=$('daftarKat'); box.replaceChildren(el('div','sub','Memuat kategori...'));
+  try{
+    st.kat=await api('/api/kategori');
+    const ada=st.kat.filter(k=>k.jenis===st.j&&k.aktif).sort((a,b)=>b.poin-a.poin||a.nama.localeCompare(b.nama));
+    box.replaceChildren();
+    const buat=(nilai,nama,poin)=>{
+      const l=el('label','opsi'), r=document.createElement('input');
+      r.type='radio';r.name='kat';r.value=nilai;
+      r.onchange=()=>{$('lain').hidden=nilai!=='lain'};
+      l.append(r,el('span',null,nama));
+      if(poin!=null)l.append(el('b','poin '+st.j,poin+' poin'));
+      box.append(l);
+    };
+    ada.forEach(k=>buat(String(k.id),k.nama,k.poin));
+    buat('lain','Lainnya (isi sendiri)',null);
+  }catch(e){box.replaceChildren(el('div','err',e.message))}
+  $('lain').hidden=true;
+}
+$('y3').onclick=()=>{
+  $('tgl').max=hariIni();$('tgl').value=$('tgl').value||hariIni();
+  $('e4').textContent='';show(4);gambarKategori();
+};
+$('n4').onclick=()=>show(3);
+$('b4').onclick=()=>{
+  const pilih=document.querySelector('input[name=kat]:checked');
+  st.t=$('tgl').value;st.c=$('catatan').value.trim().replace(/\s+/g,' ');
+  if(!pilih)return $('e4').textContent='Pilih kategori dulu.';
+  if(!st.t||st.t>hariIni())return $('e4').textContent='Tanggal kosong atau di masa depan.';
+  st.kategori=null;st.lain=null;
+  if(pilih.value==='lain'){
+    const nama=$('lainNama').value.trim().replace(/\s+/g,' '), poin=Number($('lainPoin').value);
+    if(nama.length<3)return $('e4').textContent='Nama kategori minimal 3 karakter.';
+    if(!Number.isInteger(poin)||poin<1||poin>1000)return $('e4').textContent='Poin harus bilangan bulat 1–1000.';
+    st.lain={nama,poin,simpan:$('lainSimpan').checked};st.nama=nama;st.poin=poin;
+  }else{
+    const k=st.kat.find(x=>String(x.id)===pilih.value);
+    st.kategori=k.id;st.nama=k.nama;st.poin=k.poin;
+  }
+  $('e4').textContent='';
+  $('ringkas').textContent=`Nama Lengkap: ${st.s.nama}\nKelas: ${st.s.kelas}\nJenis: ${st.j.toUpperCase()}\nKategori: ${st.nama}\nPoin: ${st.j==='dosa'?'−':'+'}${st.poin}${st.lain&&st.lain.simpan?' (disimpan sebagai kategori tetap)':''}${st.c?'\nCatatan: '+st.c:''}\nTanggal Perbuatan: ${fmtTgl(st.t)}`;
+  $('cek').checked=false;show(5);
+};
+
+// ---- 5. simpan ----
+$('n5').onclick=()=>show(4);
+$('simpan').onclick=async()=>{
+  $('e5').textContent='';
+  if(!$('cek').checked)return $('e5').textContent='Centang konfirmasi dulu.';
+  try{
+    const d=await kirim('/api/laporan',{nisn:st.s.nisn,jenis:st.j,kategori_id:st.kategori,lain:st.lain,catatan:st.c,tanggal:st.t,konfirmasi:true});
+    $('nisn').value='';$('catatan').value='';$('tgl').value='';$('lainNama').value='';$('lainPoin').value='';$('lainSimpan').checked=false;
+    show(1);$('sukses').textContent=`Tersimpan: ${st.nama} (${st.j==='dosa'?'−':'+'}${d.poin} poin) untuk ${st.s.nama}.`;
+  }catch(e){$('e5').textContent=e.message}
+};
+
+pasangKeluar();show(1);
+// dibuka dari halaman Siswa (tombol "Buat aduan"): NISN langsung terisi
+const awal=new URLSearchParams(location.search).get('nisn');
+if(awal&&/^\d{10}$/.test(awal)){$('nisn').value=awal;cariSiswa()}
+</script></body></html>

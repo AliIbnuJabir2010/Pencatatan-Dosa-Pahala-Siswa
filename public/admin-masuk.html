@@ -1,0 +1,30 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Masuk Admin</title><meta name="theme-color" content="#f4f2ec"><meta name="robots" content="noindex"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in"><h1><span>Dashboard Admin</span></h1></div></header>
+<main class="auth-main">
+<section class="login-box">
+<h2>Masuk admin</h2>
+<input id="u" placeholder="Username admin" autocomplete="username" autocapitalize="none">
+<input id="p" type="password" placeholder="Password" autocomplete="current-password">
+<button id="bl">Masuk</button><p class="err" id="el"></p>
+<p class="sub">Khusus pengelola. Guru masuk lewat <a href="/guru">/guru</a>, murid lewat <a href="/murid">/murid</a>.</p>
+</section>
+<div class="auth-sisi">
+<h3>Dashboard admin.</h3>
+<p>Kelola akun guru dan murid, kategori poin, cadangan database, dan sesi masuk.</p>
+<div>Akses terbatas</div>
+</div>
+</main>
+<script src="/ui.js"></script>
+<script>
+async function masuk(){
+  $('el').textContent='';
+  try{
+    await kirim('/api/login-admin',{username:$('u').value.trim(),password:$('p').value});
+    $('p').value='';location='/admin';
+  }catch(e){$('el').textContent=e.message}
+}
+$('bl').onclick=masuk;
+$('p').addEventListener('keydown',e=>{if(e.key==='Enter')masuk()});
+$('u').addEventListener('keydown',e=>{if(e.key==='Enter')$('p').focus()});
+</script></body></html>

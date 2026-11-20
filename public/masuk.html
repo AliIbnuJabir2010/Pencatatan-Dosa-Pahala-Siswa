@@ -1,0 +1,45 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Masuk</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in"><h1><span id="judul">Dosa &amp; Pahala</span><span><a href="/">Beranda</a></span></h1></div></header>
+<main class="auth-main">
+<section class="login-box">
+<h2 id="h">Masuk</h2>
+<input id="u" autocomplete="username" autocapitalize="none">
+<input id="p" type="password" placeholder="Password" autocomplete="current-password">
+<button id="bl">Masuk</button><p class="err" id="el"></p>
+<p class="sub" id="catatan"></p>
+</section>
+<div class="auth-sisi">
+<h3 id="slogan">Pencatatan dosa dan pahala siswa.</h3>
+<p>Form aduan, riwayat poin, dan kartu QR untuk keperluan sekolah.</p>
+<div>Portal Guru · Portal Murid</div>
+</div>
+</main>
+<script src="/ui.js"></script>
+<script>
+// Halaman ini dipakai /guru dan /murid (tampil kalau belum login).
+const peran=location.pathname.startsWith('/murid')?'murid':'guru';
+const next=new URLSearchParams(location.search).get('next');
+const NEXT_GURU=['/guru','/guru/aduan','/guru/qr','/guru/kategori','/guru/password'];
+if(peran==='murid'){
+  $('judul').textContent='Portal Murid';$('h').textContent='Masuk murid';
+  $('slogan').textContent='Lihat catatan dosa dan pahalamu.';
+  $('u').placeholder='NISN (10 digit)';$('u').inputMode='numeric';
+  $('catatan').textContent='Password dari guru. Setelah masuk kamu bisa menggantinya di menu Akun. Halaman ini hanya untuk melihat catatan milikmu sendiri.';
+}else{
+  $('judul').textContent='Portal Guru';$('h').textContent='Masuk guru';
+  $('slogan').textContent='Catat aduan dan kelola poin siswa.';
+  $('u').placeholder='Username guru';
+}
+async function masuk(){
+  $('el').textContent='';
+  try{
+    await kirim('/api/login',{username:$('u').value.trim(),password:$('p').value,peran});
+    $('p').value='';
+    location=peran==='murid'?'/murid':(NEXT_GURU.includes(next)?next:'/guru');
+  }catch(e){$('el').textContent=e.message}
+}
+$('bl').onclick=masuk;
+$('p').addEventListener('keydown',e=>{if(e.key==='Enter')masuk()});
+$('u').addEventListener('keydown',e=>{if(e.key==='Enter')$('p').focus()});
+</script></body></html>

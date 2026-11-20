@@ -1,0 +1,51 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kategori</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>Kategori &amp; Poin</span><span><a href="/guru">Siswa</a><a href="/guru/aduan">Aduan</a><a href="/guru/qr">QR</a><a href="/guru/kategori">Kategori</a><a href="/guru/password">Password</a><a href="/akun">Pengaturan</a><a href="#" id="out">Keluar</a></span></h1>
+</div></header>
+<main>
+<section><h2>Tambah kategori</h2>
+<select id="nj"><option value="dosa">Dosa</option><option value="pahala">Pahala</option></select>
+<input id="nn" maxlength="60" placeholder="Nama kategori (mis. Merokok)">
+<input id="np" type="number" min="1" max="1000" inputmode="numeric" placeholder="Poin (1–1000)">
+<button id="nt">Tambah</button><p class="err" id="en"></p><p class="ok" id="sn"></p></section>
+<div id="daftar"></div>
+<p class="sub">Mengubah poin tidak mengubah catatan yang sudah tersimpan. Kategori yang dinonaktifkan tidak muncul saat membuat aduan, tapi riwayat lama tetap aman.</p>
+</main>
+<script src="/ui.js"></script>
+<script>
+const JUDUL={dosa:'Dosa',pahala:'Pahala'};
+
+async function muat(){
+  const kat=await api('/api/kategori'), box=$('daftar'); box.replaceChildren();
+  for(const j of ['dosa','pahala']){
+    const sec=el('section'); sec.append(el('h2',null,JUDUL[j]));
+    const ada=kat.filter(k=>k.jenis===j);
+    if(!ada.length)sec.append(el('div','kosong','Belum ada kategori.'));
+    ada.forEach(k=>{
+      const baris=el('div','krow'+(k.aktif?'':' mati')), nama=el('input'), poin=el('input'), aktif=document.createElement('input'), tombol=el('button',null,'Simpan'), galat=el('div','err');
+      nama.value=k.nama;nama.maxLength=60;
+      poin.type='number';poin.min=1;poin.max=1000;poin.value=k.poin;
+      aktif.type='checkbox';aktif.checked=!!k.aktif;
+      const lab=el('label','cekrow'); lab.append(aktif,' Aktif');
+      tombol.onclick=async()=>{
+        galat.textContent='';
+        try{await kirim('/api/kategori/ubah',{id:k.id,nama:nama.value,poin:Number(poin.value),aktif:aktif.checked});await muat()}
+        catch(e){galat.textContent=e.message}
+      };
+      baris.append(nama,poin,lab,tombol,galat);sec.append(baris);
+    });
+    box.append(sec);
+  }
+}
+
+$('nt').onclick=async()=>{
+  $('en').textContent='';$('sn').textContent='';
+  try{
+    await kirim('/api/kategori',{jenis:$('nj').value,nama:$('nn').value,poin:Number($('np').value)});
+    $('nn').value='';$('np').value='';$('sn').textContent='Kategori ditambahkan.';await muat();
+  }catch(e){$('en').textContent=e.message}
+};
+pasangKeluar();
+muat().catch(e=>{$('en').textContent=e.message});
+</script></body></html>

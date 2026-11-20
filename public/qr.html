@@ -1,0 +1,27 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR Siswa</title><meta name="theme-color" content="#f4f2ec"><link rel="stylesheet" href="/style.css"></head><body>
+<header class="top kecil"><div class="top-in">
+<h1><span>QR</span><span><a href="/guru">Siswa</a><a href="/guru/aduan">Aduan</a><a href="/guru/kategori">Kategori</a><a href="/guru/password">Password</a><a href="/akun">Pengaturan</a><a href="#" id="cetak">Cetak</a><a href="#" id="out">Keluar</a></span></h1>
+<input id="q" placeholder="Cari nama, NISN, atau kelas" autocomplete="off">
+</div></header>
+<main><div class="kartu-grid" id="grid"></div></main>
+<script src="/ui.js"></script>
+<script>
+let semua=[];
+function gambar(){
+  const k=$('q').value.trim().toLowerCase(), grid=$('grid');
+  grid.replaceChildren();
+  const tampil=semua.filter(s=>!k||(s.nama+' '+s.nisn+' '+s.kelas).toLowerCase().includes(k));
+  if(!tampil.length)return grid.append(el('div','kosong','Tidak ditemukan'));
+  tampil.forEach(s=>{
+    const kartu=el('div','kartu'), img=new Image();
+    img.src='/api/qr?nisn='+s.nisn;img.alt='QR '+s.nama;img.loading='lazy';
+    kartu.append(img,el('b',null,s.nama),el('small',null,s.kelas+' · '+s.nisn));
+    grid.append(kartu);
+  });
+}
+$('q').addEventListener('input',gambar);
+$('out').onclick=async e=>{e.preventDefault();await fetch('/api/logout',{method:'POST'});location='/'};
+$('cetak').onclick=e=>{e.preventDefault();window.print()};
+fetch('/api/daftar').then(r=>{if(r.status===401)location='/';return r.json()}).then(d=>{semua=d.sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama));gambar()});
+</script></body></html>
